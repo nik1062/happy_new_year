@@ -19,7 +19,7 @@ sizeCanvas();
 
 // object image
 const image = new Image();
-image.src = "/assets/img/hoa_dao.png";
+image.src = "assets/img/hoa_dao.png";
 
 for (let i = 0; i < thingsCount; i++) {
   let opacity = Math.random() + 0.15;
