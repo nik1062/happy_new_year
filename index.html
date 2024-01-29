@@ -47,6 +47,8 @@
     </div>
   </div>
 
+  <audio id="audioEl" autoplay></audio>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.0.2/TweenMax.min.js"></script>
   <script src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/329180/fscreen%401.0.1.js"></script>
   <script src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/329180/Stage%400.1.4.js"></script>
@@ -55,7 +57,41 @@
   <script src="assets/js/count_down.js"></script>
   <script src="assets/js/fireworks.js"></script>
   <script src="assets/js/snowflake.js"></script>
+  <script type="text/javascript">
+    const TIME_WRITER = 300;
+    const arrayList = [
+        "Chúc mừng năm mới, đầy đủ sức khỏe, hạnh phúc và thành công.\nMong rằng mọi điều tốt lành sẽ đến với bạn và gia đình trong năm mới.",
+        "Năm mới an khang, tài lộc đầy nhà.\nChúc bạn gặp nhiều may mắn và thăng tiến trong công việc cũng như trong cuộc sống cá nhân.",
+        "Năm mới rộn ràng như bông hoa nở, hạnh phúc nhưng tia nắng sáng.\nChúc bạn có những trải nghiệm đáng nhớ và ngập tràn niềm vui.",
+        "Chúc mừng năm mới, tình thân thắm thiết, tình bạn bền vững.\nMong rằng mối quan hệ của bạn sẽ ngày càng mạnh mẽ và ý nghĩa.",
+        "Năm mới đến, hãy để những lo lắng ở năm cũ, mở cửa trái tim đón nhận niềm tin mới, hy vọng mới và những cơ hội mới.",
+        "Chúc bạn và gia đình có một năm mới tràn đầy năng lượng tích cực, đầy đủ niềm vui và thành công rực rỡ.",
+        "Năm mới, hãy để những bước chân của bạn dẫn đến những con đường mới, mở ra những trang mới trong cuộc đời.",
+        "Chúc bạn có một năm mới thú vị, đầy ắp những chuyến phiêu lưu, và khám phá những điều mới mẻ.",
+        "Năm mới hạnh phúc, công việc thuận lợi, tình yêu mãnh liệt.\nChúc bạn có một năm mới đáng nhớ và ý nghĩa.",
+        "Chúc mừng năm mới, hãy sống mỗi ngày với đầy đủ nghĩa lý và trân trọng từng khoảnh khắc.",
+      ];
+  </script>
   <script src="assets/js/script.js"></script>
+  <script>
+    const audioList = [
+      '/assets/audio/Di-Ve-Nha-Den-JustaTee.mp3',
+      '/assets/audio/ChuyenCuBoQua3-TrucNhanRickyStar-6896732.mp3',
+      '/assets/audio/DiDeTroVe-SoobinHoangSon-4726882.mp3',
+      '/assets/audio/DoanCaXuan-DamVinhHung_3m7k6.mp3',
+      '/assets/audio/NamQuaDaLamGi-BuiCongNam-8309403.mp3',
+      '/assets/audio/NgayTetQueEm-PhuongMyChi-3791865.mp3',
+      '/assets/audio/NgayXuanLongPhungSumVay-VA-2712302.mp3',
+      '/assets/audio/TetDoanVien-HoangTramThucQuyen-5909186.mp3',
+      '/assets/audio/TetDongDay-KHOANguyenKhoa-5850771.mp3',
+      '/assets/audio/VeNhaAnTet-BigDaddyJustaTee-8488048.mp3',
+    ];
+    document.addEventListener('click', function () {
+      const audioEl = document.getElementById('audioEl')
+      audioEl.setAttribute('src', audioList[Math.floor(Math.random() * audioList.length)])
+      audioEl.setAttribute('muted', false)
+    }, { once: true })
+  </script>
 </body>
 
 </html>
