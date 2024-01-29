@@ -17,6 +17,7 @@
   border-radius: 10px;
   text-decoration: none;
   color: #000;
+  z-index: 1000;
 }
 .avnendv-ad,
 .avnendv-ad * {

@@ -7,6 +7,8 @@
   height: 100%;
   z-index: 999;
   background-color: rgba(128, 128, 128, 0.25);
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .holder:before {
@@ -21,6 +23,7 @@
   background-repeat: no-repeat;
   background-position: 50% 0;
   background-size: cover;
+  filter: grayscale(20%);
 }
 
 .new-year {
@@ -59,7 +62,9 @@
   );
   background-clip: text;
   color: transparent;
-  font-weight: 500;
+  font-weight: bolder;
+  text-shadow: 10px 0.5px 2px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
 }
 .controls {
   margin-top: 30px;
@@ -80,7 +85,7 @@
   );
   background-clip: text;
   color: transparent;
-  font-weight: 500;
+  font-weight: 700;
 }
 .control:first-child {
   border-left: none;
@@ -92,6 +97,7 @@
   width: 100%;
   height: 100%;
   opacity: 0;
+  pointer-events: none;
 }
 .triangle {
   width: 0;
