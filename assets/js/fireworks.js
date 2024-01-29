@@ -108,7 +108,6 @@ const store = {
   state: {
     // will be unpaused in init()
     paused: true,
-    soundEnabled: true,
     menuOpen: false,
     openHelpTopic: null,
     fullscreen: isFullscreen(),
@@ -135,79 +134,13 @@ const store = {
     const prevState = this.state;
     this.state = Object.assign({}, this.state, nextState);
     this._dispatch(prevState);
-    this.persist();
   },
 
   subscribe(listener) {
     this._listeners.add(listener);
     return () => this._listeners.remove(listener);
   },
-
-  // Load / persist select state to localStorage
-  // Mutates state because `store.load()` should only be called once immediately after store is created, before any subscriptions.
-  load() {
-    const serializedData = localStorage.getItem("cm_fireworks_data");
-    if (serializedData) {
-      const { schemaVersion, data } = JSON.parse(serializedData);
-
-      const config = this.state.config;
-      switch (schemaVersion) {
-        case "1.1":
-          config.quality = data.quality;
-          config.size = data.size;
-          config.skyLighting = data.skyLighting;
-          break;
-        case "1.2":
-          config.quality = data.quality;
-          config.size = data.size;
-          config.skyLighting = data.skyLighting;
-          config.scaleFactor = data.scaleFactor;
-          break;
-        default:
-          throw new Error("version switch should be exhaustive");
-      }
-      console.log(`Loaded config (schema version ${schemaVersion})`);
-    }
-    // Deprecated data format. Checked with care (it's not namespaced).
-    else if (localStorage.getItem("schemaVersion") === "1") {
-      let size;
-      // Attempt to parse data, ignoring if there is an error.
-      try {
-        const sizeRaw = localStorage.getItem("configSize");
-        size = typeof sizeRaw === "string" && JSON.parse(sizeRaw);
-      } catch (e) {
-        console.log("Recovered from error parsing saved config:");
-        console.error(e);
-        return;
-      }
-      // Only restore validated values
-      const sizeInt = parseInt(size, 10);
-      if (sizeInt >= 0 && sizeInt <= 4) {
-        this.state.config.size = String(sizeInt);
-      }
-    }
-  },
-
-  persist() {
-    const config = this.state.config;
-    localStorage.setItem(
-      "cm_fireworks_data",
-      JSON.stringify({
-        schemaVersion: "1.2",
-        data: {
-          quality: config.quality,
-          size: config.size,
-          skyLighting: config.skyLighting,
-          scaleFactor: config.scaleFactor,
-        },
-      })
-    );
-  },
 };
-
-if (!IS_HEADER) {
-  store.load();
-}
 
 // Actions
 // ---------
@@ -223,22 +156,6 @@ function togglePause(toggle) {
 
   if (paused !== newValue) {
     store.setState({ paused: newValue });
-  }
-}
-
-function toggleSound(toggle) {
-  if (typeof toggle === "boolean") {
-    store.setState({ soundEnabled: toggle });
-  } else {
-    store.setState({ soundEnabled: !store.state.soundEnabled });
-  }
-}
-
-function toggleMenu(toggle) {
-  if (typeof toggle === "boolean") {
-    store.setState({ menuOpen: toggle });
-  } else {
-    store.setState({ menuOpen: !store.state.menuOpen });
   }
 }
 
@@ -271,11 +188,6 @@ function configDidUpdate() {
 // -----------
 
 const isRunning = (state = store.state) => !state.paused && !state.menuOpen;
-// Whether user has enabled sound.
-const soundEnabledSelector = (state = store.state) => state.soundEnabled;
-// Whether any sounds are allowed, taking into account multiple factors.
-const canPlaySoundSelector = (state = store.state) =>
-  isRunning(state) && soundEnabledSelector(state);
 // Convert quality to number.
 const qualitySelector = () => +store.state.config.quality;
 const shellNameSelector = () => store.state.config.shell;
@@ -313,22 +225,6 @@ Object.keys(appNodes).forEach((key) => {
 if (!fullscreenEnabled()) {
   appNodes.fullscreenFormOption.classList.add("remove");
 }
-
-// Perform side effects on state changes
-function handleStateChange(state, prevState) {
-  const canPlaySound = canPlaySoundSelector(state);
-  const canPlaySoundPrev = canPlaySoundSelector(prevState);
-
-  if (canPlaySound !== canPlaySoundPrev) {
-    if (canPlaySound) {
-      soundManager.resumeAll();
-    } else {
-      soundManager.pauseAll();
-    }
-  }
-}
-
-store.subscribe(handleStateChange);
 
 function getConfigFromDOM() {
   return {
@@ -933,7 +829,6 @@ function handlePointerStart(event) {
       event.x > mainStage.width / 2 - btnSize / 2 &&
       event.x < mainStage.width / 2 + btnSize / 2
     ) {
-      toggleSound();
       return;
     }
   }
@@ -1417,7 +1312,6 @@ function floralEffect(star) {
   });
   // Queue burst flash render
   BurstFlash.add(star.x, star.y, 46);
-  soundManager.playSound("burstSmall");
 }
 
 // Floral burst with willow stars
@@ -1442,7 +1336,6 @@ function fallingLeavesEffect(star) {
   });
   // Queue burst flash render
   BurstFlash.add(star.x, star.y, 46);
-  soundManager.playSound("burstSmall");
 }
 
 // Crackle pops into a small cloud of golden sparks.
@@ -1551,8 +1444,6 @@ class Shell {
     }
 
     comet.onDeath = (comet) => this.burst(comet.x, comet.y);
-
-    soundManager.playSound("lift");
   }
 
   burst(x, y) {
@@ -1567,7 +1458,6 @@ class Shell {
     if (this.crossette)
       onDeath = (star) => {
         if (!playedDeathSound) {
-          soundManager.playSound("crackleSmall");
           playedDeathSound = true;
         }
         crossetteEffect(star);
@@ -1575,7 +1465,6 @@ class Shell {
     if (this.crackle)
       onDeath = (star) => {
         if (!playedDeathSound) {
-          soundManager.playSound("crackle");
           playedDeathSound = true;
         }
         crackleEffect(star);
@@ -1763,24 +1652,6 @@ class Shell {
 
     // Queue burst flash render
     BurstFlash.add(x, y, this.spreadSize / 4);
-
-    // Play sound, but only for "original" shell, the one that was launched.
-    // We don't want multiple sounds from pistil or streamer "sub-shells".
-    // This can be detected by the presence of a comet.
-    if (this.comet) {
-      // Scale explosion sound based on current shell size and selected (max) shell size.
-      // Shooting selected shell size will always sound the same no matter the selected size,
-      // but when smaller shells are auto-fired, they will sound smaller. It doesn't sound great
-      // when a value too small is given though, so instead of basing it on proportions, we just
-      // look at the difference in size and map it to a range known to sound good.
-      const maxDiff = 2;
-      const sizeDifferenceFromMaxSize = Math.min(
-        maxDiff,
-        shellSizeSelector() - this.shellSize
-      );
-      const soundScale = (1 - sizeDifferenceFromMaxSize / maxDiff) * 0.3 + 0.7;
-      soundManager.playSound("burst", soundScale);
-    }
   }
 }
 
@@ -1915,176 +1786,9 @@ const Spark = {
   },
 };
 
-const soundManager = {
-  baseURL: "https://s3-us-west-2.amazonaws.com/s.cdpn.io/329180/",
-  ctx: new (window.AudioContext || window.webkitAudioContext)(),
-  sources: {
-    lift: {
-      volume: 0.3,
-      playbackRateMin: 0.85,
-      playbackRateMax: 0.95,
-      fileNames: ["lift1.mp3", "lift2.mp3", "lift3.mp3"],
-    },
-    burst: {
-      volume: 0.3,
-      playbackRateMin: 0.8,
-      playbackRateMax: 0.9,
-      fileNames: ["burst1.mp3", "burst2.mp3"],
-    },
-    burstSmall: {
-      volume: 0.2,
-      playbackRateMin: 0.8,
-      playbackRateMax: 1,
-      fileNames: ["burst-sm-1.mp3", "burst-sm-2.mp3"],
-    },
-    crackle: {
-      volume: 0.15,
-      playbackRateMin: 1,
-      playbackRateMax: 1,
-      fileNames: ["crackle1.mp3"],
-    },
-    crackleSmall: {
-      volume: 0.25,
-      playbackRateMin: 1,
-      playbackRateMax: 1,
-      fileNames: ["crackle-sm-1.mp3"],
-    },
-  },
-
-  preload() {
-    const allFilePromises = [];
-
-    function checkStatus(response) {
-      if (response.status >= 200 && response.status < 300) {
-        return response;
-      }
-      const customError = new Error(response.statusText);
-      customError.response = response;
-      throw customError;
-    }
-
-    const types = Object.keys(this.sources);
-    types.forEach((type) => {
-      const source = this.sources[type];
-      const { fileNames } = source;
-      const filePromises = [];
-      fileNames.forEach((fileName) => {
-        const fileURL = this.baseURL + fileName;
-        // Promise will resolve with decoded audio buffer.
-        const promise = fetch(fileURL)
-          .then(checkStatus)
-          .then((response) => response.arrayBuffer())
-          .then(
-            (data) =>
-              new Promise((resolve) => {
-                this.ctx.decodeAudioData(data, resolve);
-              })
-          );
-
-        filePromises.push(promise);
-        allFilePromises.push(promise);
-      });
-
-      Promise.all(filePromises).then((buffers) => {
-        source.buffers = buffers;
-      });
-    });
-
-    return Promise.all(allFilePromises);
-  },
-
-  pauseAll() {
-    this.ctx.suspend();
-  },
-
-  resumeAll() {
-    // Play a sound with no volume for iOS. This 'unlocks' the audio context when the user first enables sound.
-    this.playSound("lift", 0);
-    // Chrome mobile requires interaction before starting audio context.
-    // The sound toggle button is triggered on 'touchstart', which doesn't seem to count as a full
-    // interaction to Chrome. I guess it needs a click? At any rate if the first thing the user does
-    // is enable audio, it doesn't work. Using a setTimeout allows the first interaction to be registered.
-    // Perhaps a better solution is to track whether the user has interacted, and if not but they try enabling
-    // sound, show a tooltip that they should tap again to enable sound.
-    setTimeout(() => {
-      this.ctx.resume();
-    }, 250);
-  },
-
-  // Private property used to throttle small burst sounds.
-  _lastSmallBurstTime: 0,
-
-  /**
-   * Play a sound of `type`. Will randomly pick a file associated with type, and play it at the specified volume
-   * and play speed, with a bit of random variance in play speed. This is all based on `sources` config.
-   *
-   * @param  {string} type - The type of sound to play.
-   * @param  {?number} scale=1 - Value between 0 and 1 (values outside range will be clamped). Scales less than one
-   *                             descrease volume and increase playback speed. This is because large explosions are
-   *                             louder, deeper, and reverberate longer than small explosions.
-   *                             Note that a scale of 0 will mute the sound.
-   */
-  playSound(type, scale = 1) {
-    // Ensure `scale` is within valid range.
-    scale = MyMath.clamp(scale, 0, 1);
-
-    // Disallow starting new sounds if sound is disabled, app is running in slow motion, or paused.
-    // Slow motion check has some wiggle room in case user doesn't finish dragging the speed bar
-    // *all* the way back.
-    if (!canPlaySoundSelector() || simSpeed < 0.95) {
-      return;
-    }
-
-    // Throttle small bursts, since floral/falling leaves shells have a lot of them.
-    if (type === "burstSmall") {
-      const now = Date.now();
-      if (now - this._lastSmallBurstTime < 20) {
-        return;
-      }
-      this._lastSmallBurstTime = now;
-    }
-
-    const source = this.sources[type];
-
-    if (!source) {
-      throw new Error(`Sound of type "${type}" doesn't exist.`);
-    }
-
-    const initialVolume = source.volume;
-    const initialPlaybackRate = MyMath.random(
-      source.playbackRateMin,
-      source.playbackRateMax
-    );
-
-    // Volume descreases with scale.
-    const scaledVolume = initialVolume * scale;
-    // Playback rate increases with scale. For this, we map the scale of 0-1 to a scale of 2-1.
-    // So at a scale of 1, sound plays normally, but as scale approaches 0 speed approaches double.
-    const scaledPlaybackRate = initialPlaybackRate * (2 - scale);
-
-    const gainNode = this.ctx.createGain();
-    gainNode.gain.value = scaledVolume;
-
-    const buffer = MyMath.randomChoice(source.buffers);
-    const bufferSource = this.ctx.createBufferSource();
-    bufferSource.playbackRate.value = scaledPlaybackRate;
-    bufferSource.buffer = buffer;
-    bufferSource.connect(gainNode);
-    gainNode.connect(this.ctx.destination);
-    bufferSource.start(0);
-  },
-};
-
 // CodePen profile header doesn't need audio, just initialize.
 if (IS_HEADER) {
   init();
 } else {
-  // Allow status to render, then preload assets and start app.
-  setTimeout(() => {
-    soundManager.preload().then(init, (reason) => {
-      // Codepen preview doesn't like to load the audio, so just init to fix the preview for now.
-      init();
-      return Promise.reject(reason);
-    });
-  }, 0);
+  setTimeout(init, 0);
 }

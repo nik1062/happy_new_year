@@ -67,6 +67,14 @@
         minutes: minutes,
         seconds: seconds,
       };
+      animation.element(
+        animation.newYear,
+        "div",
+        "centeredBox",
+        `
+            <pre id="typewriter" data-array=""></pre>
+        `
+      );
       animation.render();
       let triangles = animation.element(year1, "div", "triangles");
       let fullTimeline = new TimelineMax();
