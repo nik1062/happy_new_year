@@ -1,0 +1,19 @@
+{
+    "name": "happy_new_year",
+    "version": "1.0.0",
+    "description": "Chúc mừng năm mới - Giáp Thìn 2024 - AVNENDV",
+    "main": "index.html",
+    "scripts": {
+      "start": "serve"
+    },
+    "keywords": [
+      "html",
+      "css"
+    ],
+    "author": "AVNENDV",
+    "license": "MIT",
+    "devDependencies": {
+      "serve": "11.2.0"
+    }
+  }
+  
